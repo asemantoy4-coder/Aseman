@@ -1,0 +1,18 @@
+# fast-scalp-crypto-bot/docker-compose.yml
+version: '3.8'
+
+services:
+  fast-scalp-bot:
+    build: .
+    container_name: fast-scalp-bot
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    volumes:
+      - ./logs:/app/logs
+      - ./.env:/app/.env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
