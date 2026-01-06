@@ -1,0 +1,96 @@
+# fast-scalp-crypto-bot/tests/test_signals.py
+import pytest
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from unittest.mock import Mock, patch
+
+from signal_generator import SignalGenerator, SignalType
+from indicator_processor import IndicatorProcessor
+
+class TestSignalGenerator:
+    def setup_method(self):
+        self.config = {
+            'zlma_length': 15,
+            'rsi_length': 14,
+            'atr_period': 14,
+            'top_n': 3
+        }
+        self.generator = SignalGenerator(self.config)
+        
+    def test_signal_creation(self):
+        """آزمایش ایجاد سیگنال"""
+        symbol = "BTC/USDT"
+        df = pd.DataFrame({
+            'open': [50000] * 100,
+            'high': [51000] * 100,
+            'low': [49000] * 100,
+            'close': [50500] * 100,
+            'volume': [1000] * 100
+        })
+        
+        indicators = {
+            'zlma': pd.Series([50400] * 100),
+            'ema': pd.Series([50300] * 100),
+            'atr': 200
+        }
+        
+        signals = self.generator.generate_signals(symbol, df, indicators)
+        assert isinstance(signals, list)
+        
+    def test_confidence_calculation(self):
+        """آزمایش محاسبه اطمینان"""
+        df = Mock()
+        df.__getitem__ = Mock(return_value=pd.Series([1000] * 100))
+        
+        indicators = {
+            'smart_money': {'near_support': True, 'bh_long': True},
+            'macd': {'bullish': True},
+            'rsi_signals': {'rsi_value': 30}
+        }
+        
+        confidence = self.generator._calculate_confidence(df, indicators, 'buy')
+        assert 0 <= confidence <= 100
+        
+    def test_signal_ranking(self):
+        """آزمایش رتبه‌بندی سیگنال‌ها"""
+        signals = [
+            Mock(symbol="BTC/USDT", confidence=85),
+            Mock(symbol="ETH/USDT", confidence=92),
+            Mock(symbol="SOL/USDT", confidence=78),
+            Mock(symbol="ADA/USDT", confidence=65)
+        ]
+        
+        ranked = self.generator.rank_signals(signals)
+        assert len(ranked) == 3  # فقط ۳ سیگنال برتر
+        assert ranked[0].confidence >= ranked[1].confidence  # مرتب‌شده
+
+class TestIndicatorProcessor:
+    def setup_method(self):
+        self.config = {
+            'zlma_length': 15,
+            'rsi_length': 14,
+            'atr_period': 14
+        }
+        self.processor = IndicatorProcessor(self.config)
+        
+    def test_zlma_calculation(self):
+        """آزمایش محاسبه ZLMA"""
+        df = pd.DataFrame({
+            'close': np.random.randn(100) * 100 + 50000
+        })
+        
+        zlma = self.processor.calculate_zlma(df)
+        assert len(zlma) == len(df)
+        assert not zlma.isna().any()
+        
+    def test_atr_calculation(self):
+        """آزمایش محاسبه ATR"""
+        df = pd.DataFrame({
+            'high': np.random.randn(100) * 100 + 51000,
+            'low': np.random.randn(100) * 100 + 49000,
+            'close': np.random.randn(100) * 100 + 50000
+        })
+        
+        atr = self.processor.calculate_atr(df)
+        assert atr > 0
