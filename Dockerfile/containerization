@@ -1,0 +1,23 @@
+# fast-scalp-crypto-bot/Dockerfile
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# نصب وابستگی‌های سیستم
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# کپی فایل‌های پروژه
+COPY requirements.txt .
+COPY . .
+
+# نصب پکیج‌های پایتون
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ساختار دایرکتوری
+RUN mkdir -p logs
+
+# اجرای برنامه
+CMD ["python", "main.py"]
