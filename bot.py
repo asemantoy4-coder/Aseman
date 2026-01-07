@@ -249,3 +249,39 @@ Time: {datetime.utcnow().strftime('%H:%M:%S')} UTC
         while True:
             schedule.run_pending()
             await asyncio.sleep(1)
+# در ابتدای bot.py اضافه کنید:
+from utils import (
+    setup_logger, validate_dataframe, clean_ohlcv_data,
+    calculate_support_resistance, calculate_market_structure,
+    PerformanceTracker, SignalScorer, DataCache,
+    format_price, format_signal_for_display, is_market_hours
+)
+
+# در __init__:
+class FastScalpCompleteBot:
+    def __init__(self, config: dict):
+        # Initialize utilities
+        self.logger = setup_logger("fast_scalp")
+        self.performance_tracker = PerformanceTracker()
+        self.signal_scorer = SignalScorer()
+        self.data_cache = DataCache()
+        
+# در fetch_data:
+async def fetch_data(self, symbol: str, limit: int = 300) -> pd.DataFrame:
+    # چک کردن کش
+    cache_key = f"ohlcv_{symbol}_{self.timeframe}_{limit}"
+    cached_data = self.data_cache.get(cache_key, max_age_minutes=4)  # 4 دقیقه کش
+    
+    if cached_data is not None:
+        df = pd.DataFrame(cached_data)
+        df.index = pd.to_datetime(df.index)
+        return df
+    
+    # دریافت داده از صرافی
+    # ... کد قبلی ...
+    
+    # ذخیره در کش
+    if not df.empty:
+        self.data_cache.set(cache_key, df.reset_index().to_dict('records'))
+    
+    return df
