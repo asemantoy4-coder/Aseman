@@ -1,72 +1,97 @@
+#!/usr/bin/env python3
+# Northflank Deployment Ready
+
 import os
 import sys
 import asyncio
 import logging
-import traceback
+from flask import Flask, jsonify
+import threading
 from datetime import datetime
-from pathlib import Path
 
-# اضافه کردن مسیر پروژه به sys.path
-sys.path.append(str(Path(__file__).parent))
+# Flask app برای health check
+app = Flask(__name__)
 
-from bot import FastScalpCompleteBot
-from utils import (
-    setup_logger, 
-    validate_api_keys, 
-    sanitize_output,
-    PerformanceTracker,
-    DataCache
-)
+@app.route('/')
+def home():
+    return jsonify({
+        "status": "running",
+        "service": "fast-scalp-bot",
+        "time": datetime.utcnow().isoformat(),
+        "version": "1.0.0"
+    })
 
-# ============================================
-# 🎨 Banner و نمایش اطلاعات
-# ============================================
+@app.route('/health')
+def health():
+    return jsonify({"status": "healthy"}), 200
 
-def display_banner():
-    """نمایش بنر زیبا"""
-    banner = """
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   🤖 FAST SCALP COMPLETE TRADING BOT v1.0.0              ║
-║   📊 ترکیب کامل دو اندیکاتور پیشرفته                    ║
-║   ⚡ تایم‌فرم ۵ دقیقه - اسکالپینگ سریع                   ║
-║   🚀 توسعه یافته برای Render.com                         ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
+@app.route('/metrics')
+def metrics():
+    # برای monitoring آینده
+    return jsonify({
+        "signals_today": 0,
+        "last_scan": datetime.utcnow().isoformat()
+    })
 
-📋 ویژگی‌ها:
-├── 🟢 ZLMA Trend + Smart Money Pro
-├── 🔴 RSI Divergence + Ichimoku Cloud
-├── 📊 تحلیل ۱۰۰ ارز برتر
-├── ⏰ اسکن هر ساعت
-├── 📱 ارسال ۳ سیگنال برتر به تلگرام
-├── 🛡️ مدیریت ریسک با ATR
-└── 📈 سیستم امتیازدهی پیشرفته
-"""
-    print(banner)
+def run_flask():
+    """اجرای Flask در پورت 8080"""
+    app.run(host='0.0.0.0', port=8080, debug=False)
 
-# ============================================
-# ⚙️ Configuration Loader
-# ============================================
-
-def load_config() -> dict:
-    """
-    لود کردن و اعتبارسنجی تنظیمات
-    """
-    logger = logging.getLogger(__name__)
+async def main_bot():
+    """ربات اصلی"""
+    from bot import FastScalpCompleteBot
     
-    print("\n" + "="*60)
-    print("⚙️  LOADING CONFIGURATION")
-    print("="*60)
-    
-    # ساختار config
     config = {
-        'telegram': {},
-        'exchange': {},
-        'strategy': {},
-        'system': {}
+        'telegram_token': os.getenv('TELEGRAM_BOT_TOKEN'),
+        'chat_id': os.getenv('TELEGRAM_CHAT_ID'),
+        'mexc_api_key': os.getenv('MEXC_API_KEY', ''),
+        'mexc_secret_key': os.getenv('MEXC_SECRET_KEY', '')
     }
     
+    bot = FastScalpCompleteBot(config)
+    await bot.run()
+
+async def main():
+    """تابع اصلی - اجرای همزمان Flask و Bot"""
+    print("\n" + "="*60)
+    print("🚀 FAST SCALP BOT - NORTHFLANK DEPLOYMENT")
+    print("="*60)
+    print(f"Start Time: {datetime.utcnow()}")
+    print(f"Python: {sys.version}")
+    print(f"Port: 8080")
+    print("="*60 + "\n")
+    
+    # اجرای Flask در ترد جداگانه
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    
+    # کمی صبر برای راه‌اندازی Flask
+    import time
+    time.sleep(2)
+    
+    # اجرای ربات اصلی
+    await main_bot()
+
+if __name__ == "__main__":
+    # بررسی متغیرهای ضروری
+    required = ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID']
+    missing = [var for var in required if not os.getenv(var)]
+    
+    if missing:
+        print(f"❌ Missing environment variables: {missing}")
+        print("Please set in Northflank dashboard → Variables")
+        sys.exit(1)
+    
+    # اجرای برنامه
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n👋 Bot stopped gracefully")
+    except Exception as e:
+        print(f"❌ Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
     # ======================
     # 📱 تنظیمات تلگرام (ضروری)
     # ======================
