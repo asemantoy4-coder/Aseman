@@ -2,7 +2,6 @@ name: fast-scalp-bot
 type: service
 build:
   type: nixpacks
-  buildCommand: pip install -r requirements.txt
 run:
   command: python main.py
   ports:
@@ -10,24 +9,12 @@ run:
   resources:
     memory: 512Mi
     cpu: 0.5
-  scaling:
-    replicas: 1
-    autoscaling:
-      enabled: false
 variables:
   - name: TELEGRAM_BOT_TOKEN
-    value: your_token_here
     secret: true
   - name: TELEGRAM_CHAT_ID
-    value: your_chat_id_here
-  - name: MEXC_API_KEY
-    value: ""
-  - name: MEXC_SECRET_KEY
-    value: ""
   - name: TZ
     value: UTC
-  - name: LOG_LEVEL
-    value: INFO
 healthCheck:
   path: /health
   port: 8080
