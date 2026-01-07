@@ -1,8 +1,19 @@
+# Core
 ccxt==4.1.60
 pandas==2.1.4
 numpy==1.24.3
+
+# Telegram
 python-telegram-bot==20.7
+
+# Technical Analysis
 ta==0.10.2
+
+# Utilities
 python-dotenv==1.0.0
 schedule==1.2.0
 aiohttp==3.9.1
+flask==2.3.3  # برای health check endpoint
+
+# Optional (برای محاسبات سریعتر)
+numba==0.58.1
